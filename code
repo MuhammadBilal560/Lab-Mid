@@ -1,1 +1,181 @@
 
+package admissionsystem;
+
+import java.util.ArrayList;
+import java.util.List;
+
+interface Observer {
+    void update(String message);
+}
+
+class AdmissionOfficer implements Observer {
+    private String name;
+
+    public AdmissionOfficer(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void update(String message) {
+        System.out.println("Admission Officer " + name + " notified: " + message);
+    }
+}
+
+class Applicant implements Observer {
+    private String name;
+
+    public Applicant(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void update(String message) {
+        System.out.println("Applicant " + name + " notified: " + message);
+    }
+}
+
+interface Subject {
+    void addObserver(Observer observer);
+    void removeObserver(Observer observer);
+    void notifyObservers(String message);
+}
+class AdmissionNotifier implements Subject {
+    private List<Observer> observers = new ArrayList<>();
+
+    @Override
+    public void addObserver(Observer observer) {
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(Observer observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void notifyObservers(String message) {
+        for (Observer observer : observers) {
+            observer.update(message);
+        }
+    }
+}
+
+abstract class AdmissionStage {
+    protected AdmissionStage nextStage;
+
+    public void setNextStage(AdmissionStage nextStage) {
+        this.nextStage = nextStage;
+    }
+
+    public abstract void process(ApplicantData applicant, AdmissionNotifier notifier);
+}
+
+class EligibilityCheck extends AdmissionStage {
+    @Override
+    public void process(ApplicantData applicant, AdmissionNotifier notifier) {
+        if (applicant.getAge() >= 18 && applicant.getAcademicScore() >= 60) {
+            notifier.notifyObservers("Eligibility Check Passed for " + applicant.getName());
+            if (nextStage != null) nextStage.process(applicant, notifier);
+        } else {
+            notifier.notifyObservers("Eligibility Check Failed for " + applicant.getName());
+        }
+    }
+}
+
+class TestEvaluation extends AdmissionStage {
+    @Override
+    public void process(ApplicantData applicant, AdmissionNotifier notifier) {
+        if (applicant.getTestScore() >= 50) {
+            notifier.notifyObservers("Test Passed for " + applicant.getName());
+            if (nextStage != null) nextStage.process(applicant, notifier);
+        } else {
+            notifier.notifyObservers("Test Failed for " + applicant.getName());
+        }
+    }
+}
+
+class InterviewEvaluation extends AdmissionStage {
+    @Override
+    public void process(ApplicantData applicant, AdmissionNotifier notifier) {
+        if (applicant.getInterviewScore() >= 70) {
+            notifier.notifyObservers("Interview Passed for " + applicant.getName());
+            if (nextStage != null) nextStage.process(applicant, notifier);
+        } else {
+            notifier.notifyObservers("Interview Failed for " + applicant.getName());
+        }
+    }
+}
+
+class MeritListGeneration extends AdmissionStage {
+    @Override
+    public void process(ApplicantData applicant, AdmissionNotifier notifier) {
+        int totalScore = applicant.getAcademicScore() + applicant.getTestScore() + applicant.getInterviewScore();
+        if (totalScore >= 200) {
+            notifier.notifyObservers("Applicant " + applicant.getName() + " Admitted with Total Score: " + totalScore);
+        } else {
+            notifier.notifyObservers("Applicant " + applicant.getName() + " Not Admitted. Total Score: " + totalScore);
+        }
+    }
+}
+
+class ApplicantData {
+    private String name;
+    private int age;
+    private int academicScore;
+    private int testScore;
+    private int interviewScore;
+
+    public ApplicantData(String name, int age, int academicScore, int testScore, int interviewScore) {
+        this.name = name;
+        this.age = age;
+        this.academicScore = academicScore;
+        this.testScore = testScore;
+        this.interviewScore = interviewScore;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public int getAcademicScore() {
+        return academicScore;
+    }
+
+    public int getTestScore() {
+        return testScore;
+    }
+
+    public int getInterviewScore() {
+        return interviewScore;
+    }
+}
+
+public class AdmissionSystem {
+    public static void main(String[] args) {
+
+        AdmissionNotifier notifier = new AdmissionNotifier();
+        Observer officer = new AdmissionOfficer("bilal");
+        Observer applicant = new Applicant("farhan");
+
+        notifier.addObserver(officer);
+        notifier.addObserver(applicant);
+
+        ApplicantData applicantData = new ApplicantData("farhan", 19, 65, 75, 85);
+
+        AdmissionStage eligibilityCheck = new EligibilityCheck();
+        AdmissionStage testEvaluation = new TestEvaluation();
+        AdmissionStage interviewEvaluation = new InterviewEvaluation();
+        AdmissionStage meritListGeneration = new MeritListGeneration();
+
+        eligibilityCheck.setNextStage(testEvaluation);
+        testEvaluation.setNextStage(interviewEvaluation);
+        interviewEvaluation.setNextStage(meritListGeneration);
+
+        eligibilityCheck.process(applicantData, notifier);
+    }
+}
+
